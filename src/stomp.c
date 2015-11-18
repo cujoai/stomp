@@ -33,29 +33,6 @@
 #include "frame.h"
 #include "stomp.h"
 
-#ifdef __MACH__
-#include <mach/clock.h>
-#include <mach/mach.h>
-
-/* XXX: Mac OS X does not support clock_gettime */
-void clock_gettime_mach(struct timespec *now)
-{
-	clock_serv_t cclock;
-	mach_timespec_t mts;
-	host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
-	clock_get_time(cclock, &mts);
-	mach_port_deallocate(mach_task_self(), cclock);
-	now->tv_sec = mts.tv_sec;
-	now->tv_nsec = mts.tv_nsec;
-}
-
-#define CLOCK_GETTIME(now) clock_gettime_mach(now);
-
-#else
-#define CLOCK_GETTIME(now) clock_gettime(CLOCK_MONOTONIC, now);
-#endif
-
-
 /* enough space for ULLONG_MAX as string */
 #define MAXBUFLEN 25
 
@@ -190,7 +167,7 @@ stomp_connect(stomp_session_t *s, struct libwebsocket* wsi, size_t hdrc,
 		return -1;
 	}
 
-	CLOCK_GETTIME(&s->last_write);
+	clock_gettime(CLOCK_MONOTONIC, &s->last_write);
 
 	return 0;
 }
@@ -213,7 +190,7 @@ stomp_disconnect(stomp_session_t *s, size_t hdrc, const struct stomp_hdr *hdrs)
 		return -1;
 	}
 
-	CLOCK_GETTIME(&s->last_write);
+	clock_gettime(CLOCK_MONOTONIC, &s->last_write);
 
 	return 0;
 }
@@ -270,7 +247,7 @@ stomp_subscribe(stomp_session_t *s, size_t hdrc, const struct stomp_hdr *hdrs)
 		return -1;
 	}
 
-	CLOCK_GETTIME(&s->last_write);
+	clock_gettime(CLOCK_MONOTONIC, &s->last_write);
 	s->client_id = client_id;
 
 	return client_id;
@@ -319,7 +296,7 @@ stomp_unsubscribe(stomp_session_t *s, int client_id, size_t hdrc,
 		return -1;
 	}
 
-	CLOCK_GETTIME(&s->last_write);
+	clock_gettime(CLOCK_MONOTONIC, &s->last_write);
 
 	return 0;
 }
@@ -348,7 +325,7 @@ stomp_begin(stomp_session_t *s, size_t hdrc, const struct stomp_hdr *hdrs)
 		return -1;
 	}
 
-	CLOCK_GETTIME(&s->last_write);
+	clock_gettime(CLOCK_MONOTONIC, &s->last_write);
 
 	return 0;
 }
@@ -376,7 +353,7 @@ stomp_abort(stomp_session_t *s, size_t hdrc, const struct stomp_hdr *hdrs)
 		return -1;
 	}
 
-	CLOCK_GETTIME(&s->last_write);
+	clock_gettime(CLOCK_MONOTONIC, &s->last_write);
 
 	return 0;
 }
@@ -424,7 +401,7 @@ stomp_ack(stomp_session_t *s, size_t hdrc, const struct stomp_hdr *hdrs)
 		return -1;
 	}
 
-	CLOCK_GETTIME(&s->last_write);
+	clock_gettime(CLOCK_MONOTONIC, &s->last_write);
 
 	return 0;
 }
@@ -469,7 +446,7 @@ stomp_nack(stomp_session_t *s, size_t hdrc, const struct stomp_hdr *hdrs)
 		return -1;
 	}
 
-	CLOCK_GETTIME(&s->last_write);
+	clock_gettime(CLOCK_MONOTONIC, &s->last_write);
 
 	return 0;
 }
@@ -497,7 +474,7 @@ stomp_commit(stomp_session_t *s, size_t hdrc, const struct stomp_hdr *hdrs)
 		return -1;
 	}
 
-	CLOCK_GETTIME(&s->last_write);
+	clock_gettime(CLOCK_MONOTONIC, &s->last_write);
 
 	return 0;
 }
@@ -542,7 +519,7 @@ stomp_send(stomp_session_t *s, size_t hdrc, const struct stomp_hdr *hdrs,
 		return -1;
 	}
 
-	CLOCK_GETTIME(&s->last_write);
+	clock_gettime(CLOCK_MONOTONIC, &s->last_write);
 
 	return 0;
 }
@@ -562,7 +539,7 @@ stomp_recv_cmd(stomp_session_t *s, const unsigned char* buf, size_t len)
 		return -1;
 	}
 
-	CLOCK_GETTIME(&s->last_read);
+	clock_gettime(CLOCK_MONOTONIC, &s->last_read);
 	s->broker_timeouts = 0;
 
 	cmd_len = frame_cmd_get(f, &cmd);
@@ -596,7 +573,7 @@ stomp_handle_heartbeat(stomp_session_t *s)
 		s->callbacks.user(s, NULL, s->ctx);
 
 	if (s->client_hb || s->broker_hb)
-		CLOCK_GETTIME(&now);
+		clock_gettime(CLOCK_MONOTONIC, &now);
 
 	if (s->broker_hb) {
 		elapsed = (now.tv_sec - s->last_read.tv_sec) * 1000 +
