@@ -14,6 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 #include <sys/types.h>
 #include <sys/socket.h>
 
@@ -30,7 +31,6 @@
 #include <libwebsockets.h>
 
 #include "frame.h"
-#include "hdr.h"
 #include "stomp.h"
 
 #ifdef __MACH__
@@ -92,6 +92,7 @@ static void on_connected(stomp_session_t *);
 static void on_receipt(stomp_session_t *);
 static void on_error(stomp_session_t *);
 static void on_message(stomp_session_t *);
+static const char *hdr_get(size_t, const struct stomp_hdr *, const char *);
 
 stomp_session_t *
 stomp_session_new(void *session_ctx)
@@ -830,4 +831,19 @@ on_message(stomp_session_t *s)
 	e.body_len = frame_body_get(f, &e.body);
 
 	s->callbacks.message(s, &e, s->ctx);
+}
+
+static const char *
+hdr_get(size_t count, const struct stomp_hdr *hdrs, const char *key)
+{
+	size_t i;
+	const struct stomp_hdr *h;
+	for (i=0; i < count; i++) {
+		h = &hdrs[i];
+		if (!strcmp(key, h->key)) {
+			return h->val;
+		}
+	}
+
+	return NULL;
 }

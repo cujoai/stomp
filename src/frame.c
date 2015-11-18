@@ -23,7 +23,6 @@
 #include <libwebsockets.h>
 
 #include "frame.h"
-#include "hdr.h"
 
 enum read_state {
 	RS_INIT,
