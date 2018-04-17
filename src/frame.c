@@ -492,7 +492,7 @@ static enum read_state frame_read_body(frame_t *f, char c)
 } 
 
 
-ssize_t frame_write(struct libwebsocket* wsi, frame_t *f) 
+ssize_t frame_write(struct lws* wsi, frame_t *f) 
 {
 	size_t left; 
 	size_t n;
@@ -514,7 +514,7 @@ ssize_t frame_write(struct libwebsocket* wsi, frame_t *f)
 			
 	memcpy(ws_buf + LWS_SEND_BUFFER_PRE_PADDING, f->buf, left);
 
-	n = libwebsocket_write(wsi, &ws_buf[LWS_SEND_BUFFER_PRE_PADDING], left, LWS_WRITE_TEXT);
+	n = lws_write(wsi, &ws_buf[LWS_SEND_BUFFER_PRE_PADDING], left, LWS_WRITE_TEXT);
 
 	/* assert(n == left); */
 	/* printf("stomp (frame_write): %zu bytes written\n", n); */
