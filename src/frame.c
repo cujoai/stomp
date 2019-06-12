@@ -1,28 +1,41 @@
 /*
- * Copyright 2013 Evgeni Dobrev <evgeni_dobrev@developer.bg>
+ * Copyright 2019 Evgeni Dobrev <evgeni@studio-punkt.com>
  *
- * This library is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * 1. Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
  *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.  
+ *
+ * 3. Neither the name of the copyright holder nor the names of its
+ * contributors may be used to endorse or promote products derived from this
+ * software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
  */
+
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
 
-#include <libwebsockets.h>
-
 #include "frame.h"
+#include "hdr.h"
 
 enum read_state {
 	RS_INIT,
@@ -101,6 +114,7 @@ static int parse_content_length(const char *s, size_t *len)
 	return 0;
 }
 
+
 frame_t *frame_new()
 {
 	frame_t *f = calloc(1, sizeof(*f));
@@ -166,9 +180,8 @@ static void *frame_alloc(frame_t *f, size_t len)
 		return f->buf + f->buf_len;
 	}
 
-	capacity = f->buf_capacity + \
-		(BUFINCLEN > len ? BUFINCLEN : len);
-
+	capacity = f->buf_len + len;
+	capacity += (BUFINCLEN - (capacity % BUFINCLEN));
 	buf = realloc(f->buf, capacity);
 	if (!buf) {
 		return NULL;
@@ -491,11 +504,11 @@ static enum read_state frame_read_body(frame_t *f, char c)
 	return state;
 } 
 
-
-ssize_t frame_write(struct lws* wsi, frame_t *f) 
+ssize_t frame_write(int fd, frame_t *f) 
 {
 	size_t left; 
-	size_t n;
+	ssize_t n;
+	ssize_t total = 0;
 
 	/* close the frame */
 	if (!f->body_offset) {
@@ -505,23 +518,17 @@ ssize_t frame_write(struct lws* wsi, frame_t *f)
 	}
 
 	left = f->buf_len; 
+	while(total < f->buf_len) {
+		n = write(fd, f->buf+total, left);
+		if (n == -1) {
+			return -1;
+		}
 
-	unsigned char *ws_buf =  calloc(1, LWS_SEND_BUFFER_PRE_PADDING +
-				left + LWS_SEND_BUFFER_POST_PADDING + 1);
+		total += n;
+		left -= n;
+	}
 
-	if (!ws_buf)
-		return -1;
-			
-	memcpy(ws_buf + LWS_SEND_BUFFER_PRE_PADDING, f->buf, left);
-
-	n = lws_write(wsi, &ws_buf[LWS_SEND_BUFFER_PRE_PADDING], left, LWS_WRITE_TEXT);
-
-	/* assert(n == left); */
-	/* printf("stomp (frame_write): %zu bytes written\n", n); */
-
-	free(ws_buf);
-
-	return n; 
+	return total; 
 }
 
 static enum read_state frame_read_init(frame_t *f, char c) 
@@ -691,15 +698,15 @@ static enum read_state frame_read_hdr_esc(frame_t *f, char c)
 	return RS_HDR;
 } 
 
-int frame_read(const unsigned char* ptr, size_t len, frame_t *f)
+int frame_read(int fd, frame_t *f)
 {
-	unsigned char c = 0;
-
-	size_t pos = 0;
+	char c = 0;
 	
-	while (pos < len && f->read_state != RS_ERR && f->read_state != RS_DONE) {
-		
-		c = *(ptr+(pos++));
+	while (f->read_state != RS_ERR && f->read_state != RS_DONE) {
+
+		if(read(fd, &c, sizeof(char)) != sizeof(char)) {
+			return -1;
+		}
 
 		switch(f->read_state) {
 			case RS_INIT:
