@@ -5,6 +5,18 @@ AM_SILENT_RULES([yes])
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 LT_INIT
 AC_PROG_CC
+
+m4_define_default([PKG_PROG_PKG_CONFIG],
+  [AC_MSG_CHECKING([pkg-config])
+  AC_MSG_RESULT([no])])
+
+PKG_PROG_PKG_CONFIG
+
+m4_define_default([PKG_CHECK_MODULES],
+  [AC_MSG_CHECKING([$1])
+   AC_MSG_RESULT([no])
+   $4])
+
 PKG_CHECK_MODULES(CHECK,[check], [HAVE_CHECK=yes], [HAVE_CHECK=no])
 AM_CONDITIONAL(HAVE_CHECK, test x$HAVE_CHECK = xyes)
 
