@@ -27,25 +27,20 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef FRAME_H
-#define FRAME_H
+#include <stddef.h>
+#include <string.h>
+#include "hdr.h"
 
-#include "stomp.h"
+const char *hdr_get(size_t count, const struct stomp_hdr *hdrs, const char *key)
+{
+	size_t i;
+	const struct stomp_hdr *h;
+	for (i=0; i < count; i++) {
+		h = &hdrs[i];
+		if (!strcmp(key, h->key)) {
+			return h->val;
+		}
+	}
 
-typedef struct _frame frame_t;
-
-frame_t *frame_new();
-void frame_free(frame_t *f);
-void frame_reset(frame_t *f);
-int frame_cmd_set(frame_t *f, const char *cmd);
-int frame_hdr_add(frame_t *f, const char *key, const char *val);
-int frame_hdrs_add(frame_t *f, size_t hdrc, const struct stomp_hdr *hdrs);
-int frame_body_set(frame_t *f, const void *body, size_t len);
-ssize_t frame_write(int fd, frame_t *f);
-
-size_t frame_cmd_get(frame_t *f, const char **cmd);
-size_t frame_hdrs_get(frame_t *f, const struct stomp_hdr **hdrs);
-size_t frame_body_get(frame_t *f, const void **body);
-int frame_read(int fd, frame_t *f);
-
-#endif /* FRAME_H */
+	return NULL;
+}

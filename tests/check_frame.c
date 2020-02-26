@@ -104,6 +104,21 @@ START_TEST(test_cmd_set)
 }
 END_TEST
 
+START_TEST(test_cmd_set_big)
+{
+	const char *cmd = "This is a very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very, very long cmd";
+	const char *s;
+	size_t len;
+
+	fail_if(frame == NULL, NULL);
+
+	fail_if(frame_cmd_set(frame, cmd) != 0, NULL);
+	len = frame_cmd_get(frame, &s);
+	fail_unless(len == strlen(cmd), NULL);
+	fail_unless(!strncmp(cmd, s, len), NULL);
+}
+END_TEST
+
 
 START_TEST(test_hdr_add_no_cmd)
 {
@@ -258,6 +273,7 @@ Suite *frame_suite()
 	tcase_add_checked_fixture (tc_core, setup, teardown);
 	tcase_add_test(tc_core, test_new);
 	tcase_add_test(tc_core, test_cmd_set);
+	tcase_add_test(tc_core, test_cmd_set_big);
 	tcase_add_test(tc_core, test_cmd_set_cmd);
 	tcase_add_test(tc_core, test_cmd_set_frame_null);
 	tcase_add_test(tc_core, test_cmd_set_cmd_null);
