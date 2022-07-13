@@ -78,6 +78,8 @@ static void on_receipt(stomp_session_t *);
 static void on_error(stomp_session_t *);
 static void on_message(stomp_session_t *);
 static const char *hdr_get(size_t, const struct stomp_hdr *, const char *);
+static int stomp_send(stomp_session_t *s, size_t hdrc,
+    const struct stomp_hdr *hdrs, const void *body, size_t body_len, int mode);
 
 stomp_session_t *
 stomp_session_new(void *session_ctx)
@@ -165,7 +167,7 @@ stomp_connect(stomp_session_t *s, struct lws* wsi, size_t hdrc,
 	if (frame_hdrs_add(s->frame_out, hdrc, hdrs))
 		return (-1);
 
-	if (frame_write(wsi, s->frame_out) < 0) {
+	if (frame_write(wsi, s->frame_out, LWS_WRITE_TEXT) < 0) {
 		s->run = 0;
 		return (-1);
 	}
@@ -184,7 +186,7 @@ stomp_disconnect(stomp_session_t *s, size_t hdrc, const struct stomp_hdr *hdrs)
 	    frame_hdrs_add(s->frame_out, hdrc, hdrs))
 		return (-1);
 
-	if (frame_write(s->broker_fd, s->frame_out) < 0) {
+	if (frame_write(s->broker_fd, s->frame_out, LWS_WRITE_TEXT) < 0) {
 		s->run = 0;
 		return (-1);
 	}
@@ -234,7 +236,7 @@ stomp_subscribe(stomp_session_t *s, size_t hdrc, const struct stomp_hdr *hdrs)
 	    frame_hdrs_add(s->frame_out, hdrc, hdrs))
 		return (-1);
 
-	if (frame_write(s->broker_fd, s->frame_out) < 0) {
+	if (frame_write(s->broker_fd, s->frame_out, LWS_WRITE_TEXT) < 0) {
 		s->run = 0;
 		return (-1);
 	}
@@ -280,7 +282,7 @@ stomp_unsubscribe(stomp_session_t *s, int client_id, size_t hdrc,
 	if (frame_hdrs_add(s->frame_out, hdrc, hdrs))
 		return (-1);
 
-	if (frame_write(s->broker_fd, s->frame_out) < 0) {
+	if (frame_write(s->broker_fd, s->frame_out, LWS_WRITE_TEXT) < 0) {
 		s->run = 0;
 		return (-1);
 	}
@@ -305,7 +307,7 @@ stomp_begin(stomp_session_t *s, size_t hdrc, const struct stomp_hdr *hdrs)
 	    frame_hdrs_add(s->frame_out, hdrc, hdrs))
 		return (-1);
 
-	if (frame_write(s->broker_fd, s->frame_out) < 0) {
+	if (frame_write(s->broker_fd, s->frame_out, LWS_WRITE_TEXT) < 0) {
 		s->run = 0;
 		return (-1);
 	}
@@ -329,7 +331,7 @@ stomp_abort(stomp_session_t *s, size_t hdrc, const struct stomp_hdr *hdrs)
 	    frame_hdrs_add(s->frame_out, hdrc, hdrs))
 		return (-1);
 
-	if (frame_write(s->broker_fd, s->frame_out) < 0) {
+	if (frame_write(s->broker_fd, s->frame_out, LWS_WRITE_TEXT) < 0) {
 		s->run = 0;
 		return (-1);
 	}
@@ -373,7 +375,7 @@ stomp_ack(stomp_session_t *s, size_t hdrc, const struct stomp_hdr *hdrs)
 	    frame_hdrs_add(s->frame_out, hdrc, hdrs))
 		return (-1);
 
-	if (frame_write(s->broker_fd, s->frame_out) < 0) {
+	if (frame_write(s->broker_fd, s->frame_out, LWS_WRITE_TEXT) < 0) {
 		s->run = 0;
 		return (-1);
 	}
@@ -411,7 +413,7 @@ stomp_nack(stomp_session_t *s, size_t hdrc, const struct stomp_hdr *hdrs)
 	    frame_hdrs_add(s->frame_out, hdrc, hdrs))
 		return (-1);
 
-	if (frame_write(s->broker_fd, s->frame_out) < 0) {
+	if (frame_write(s->broker_fd, s->frame_out, LWS_WRITE_TEXT) < 0) {
 		s->run = 0;
 		return (-1);
 	}
@@ -435,7 +437,7 @@ stomp_commit(stomp_session_t *s, size_t hdrc, const struct stomp_hdr *hdrs)
 	    frame_hdrs_add(s->frame_out, hdrc, hdrs))
 		return (-1);
 
-	if (frame_write(s->broker_fd, s->frame_out) < 0) {
+	if (frame_write(s->broker_fd, s->frame_out, LWS_WRITE_TEXT) < 0) {
 		s->run = 0;
 		return (-1);
 	}
@@ -446,8 +448,22 @@ stomp_commit(stomp_session_t *s, size_t hdrc, const struct stomp_hdr *hdrs)
 }
 
 int
-stomp_send(stomp_session_t *s, size_t hdrc, const struct stomp_hdr *hdrs,
+stomp_send_text(stomp_session_t *s, size_t hdrc, const struct stomp_hdr *hdrs,
     const void *body, size_t body_len)
+{
+	return stomp_send(s, hdrc, hdrs, body, body_len, LWS_WRITE_TEXT);
+}
+
+int
+stomp_send_bin(stomp_session_t *s, size_t hdrc, const struct stomp_hdr *hdrs,
+    const void *body, size_t body_len)
+{
+	return stomp_send(s, hdrc, hdrs, body, body_len, LWS_WRITE_BINARY);
+}
+
+int
+stomp_send(stomp_session_t *s, size_t hdrc, const struct stomp_hdr *hdrs,
+    const void *body, size_t body_len, int mode)
 {
 	char		 buf[ULL_STR_LEN];
 	const char	*len;
@@ -474,7 +490,7 @@ stomp_send(stomp_session_t *s, size_t hdrc, const struct stomp_hdr *hdrs,
 	    frame_body_set(s->frame_out, body, body_len))
 		return (-1);
 
-	if (frame_write(s->broker_fd, s->frame_out) < 0) {
+	if (frame_write(s->broker_fd, s->frame_out, mode) < 0) {
 		s->run = 0;
 		return (-1);
 	}
