@@ -180,9 +180,8 @@ static void *frame_alloc(frame_t *f, size_t len)
 		return f->buf + f->buf_len;
 	}
 
-	capacity = f->buf_capacity + \
-		(BUFINCLEN > len ? BUFINCLEN : len);
-
+	capacity = f->buf_len + len;
+	capacity += (BUFINCLEN - (capacity % BUFINCLEN));
 	buf = realloc(f->buf, capacity);
 	if (!buf) {
 		return NULL;
