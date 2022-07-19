@@ -9,7 +9,7 @@
  *
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.  
+ * and/or other materials provided with the distribution.
  *
  * 3. Neither the name of the copyright holder nor the names of its
  * contributors may be used to endorse or promote products derived from this
@@ -27,8 +27,8 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef FRAME_H
-#define FRAME_H
+#ifndef STOMP_FRAME_H
+#define STOMP_FRAME_H
 
 #include "stomp.h"
 
@@ -41,11 +41,11 @@ int frame_cmd_set(frame_t *f, const char *cmd);
 int frame_hdr_add(frame_t *f, const char *key, const char *val);
 int frame_hdrs_add(frame_t *f, size_t hdrc, const struct stomp_hdr *hdrs);
 int frame_body_set(frame_t *f, const void *body, size_t len);
-ssize_t frame_write(int fd, frame_t *f);
+ssize_t frame_write(struct lws* fd, frame_t *f);
 
 size_t frame_cmd_get(frame_t *f, const char **cmd);
 size_t frame_hdrs_get(frame_t *f, const struct stomp_hdr **hdrs);
 size_t frame_body_get(frame_t *f, const void **body);
-int frame_read(int fd, frame_t *f);
+int frame_read(const unsigned char* buf, size_t len, frame_t *f);
 
-#endif /* FRAME_H */
+#endif
