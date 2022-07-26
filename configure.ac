@@ -1,7 +1,8 @@
 AC_INIT([stomp], [0.1], [evgeni@studio-punkt.com],[],[https://github.com/evgenido/stomp])
 AC_CONFIG_MACRO_DIR([m4])
-AM_INIT_AUTOMAKE([-Wall foreign])
+AM_INIT_AUTOMAKE([-Wall foreign subdir-objects])
 AM_SILENT_RULES([yes])
+m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 LT_INIT
 AC_PROG_CC
 
