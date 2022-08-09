@@ -101,7 +101,9 @@ int stomp_nack(stomp_session_t *, size_t, const struct stomp_hdr *);
 
 int stomp_commit(stomp_session_t *, size_t, const struct stomp_hdr *);
 
-int stomp_send(stomp_session_t *, size_t, const struct stomp_hdr *, const void *,
+int stomp_send_text(stomp_session_t *, size_t, const struct stomp_hdr *, const void *,
+    size_t);
+int stomp_send_bin(stomp_session_t *, size_t, const struct stomp_hdr *, const void *,
     size_t);
 
 int stomp_recv_cmd(stomp_session_t *, const unsigned char*, size_t);
