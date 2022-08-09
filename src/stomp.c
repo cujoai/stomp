@@ -92,12 +92,15 @@ stomp_session_new(void *session_ctx)
 	s->ctx = session_ctx;
 	s->broker_fd = NULL;
 
-	if ((s->frame_out = frame_new()) == NULL)
+	if ((s->frame_out = frame_new()) == NULL) {
 		free(s);
+		return (NULL);
+	}
 
 	if ((s->frame_in = frame_new()) == NULL) {
 		free(s->frame_out);
 		free(s);
+		return (NULL);
 	}
 
 	return (s);
