@@ -38,6 +38,11 @@
 
 #include "frame.h"
 
+/* Custom allocator support, defined in stomp.c */
+extern void *(*stomp_calloc) (size_t, size_t);
+extern void *(*stomp_realloc) (void *, size_t);
+extern void (*stomp_free) (void *);
+
 enum read_state {
 	RS_INIT,
 	RS_CMD,
@@ -117,17 +122,17 @@ static int parse_content_length(const char *s, size_t *len)
 
 frame_t *frame_new()
 {
-	frame_t *f = calloc(1, sizeof(*f));
+	frame_t *f = stomp_calloc(1, sizeof(*f));
 	
 	return f;
 }
 
 void frame_free(frame_t *f)
 {
-	free(f->stomp_hdrs);
-	free(f->hdrs);
-	free(f->buf);
-	free(f);
+	stomp_free(f->stomp_hdrs);
+	stomp_free(f->hdrs);
+	stomp_free(f->buf);
+	stomp_free(f);
 }
 
 void frame_reset(frame_t *f)
@@ -182,7 +187,7 @@ static void *frame_alloc(frame_t *f, size_t len)
 
 	capacity = f->buf_len + len;
 	capacity += (BUFINCLEN - (capacity % BUFINCLEN));
-	buf = realloc(f->buf, capacity);
+	buf = stomp_realloc(f->buf, capacity);
 	if (!buf) {
 		return NULL;
 	}
@@ -352,7 +357,7 @@ int frame_hdr_add(frame_t *f, const char *key, const char *val)
 
 	if (!(f->hdrs_capacity - f->hdrs_len)) {
 		size_t capacity = f->hdrs_capacity + HDRINCLEN;
-		h = realloc(f->hdrs, capacity * sizeof(*h));
+		h = stomp_realloc(f->hdrs, capacity * sizeof(*h));
 		if (!h) {
 			return -1;
 		}
@@ -519,7 +524,7 @@ ssize_t frame_write(struct lws* wsi, frame_t *f, int mode)
 
 	left = f->buf_len; 
 
-	unsigned char *ws_buf =  calloc(1, LWS_SEND_BUFFER_PRE_PADDING +
+	unsigned char *ws_buf =  stomp_calloc(1, LWS_SEND_BUFFER_PRE_PADDING +
 				left + LWS_SEND_BUFFER_POST_PADDING + 1);
 
 	if (!ws_buf)
@@ -532,7 +537,7 @@ ssize_t frame_write(struct lws* wsi, frame_t *f, int mode)
 	/* assert(n == left); */
 	/* printf("stomp (frame_write): %zu bytes written\n", n); */
 
-	free(ws_buf);
+	stomp_free(ws_buf);
 
 	return n; 
 }
@@ -611,7 +616,7 @@ static enum read_state frame_read_hdr(frame_t *f, char c)
 	
 	if (!(f->hdrs_capacity - count)) {
 		size_t capacity = f->hdrs_capacity + HDRINCLEN;
-		h = realloc(f->hdrs, capacity * sizeof(*h));
+		h = stomp_realloc(f->hdrs, capacity * sizeof(*h));
 		if (!h) {
 			return RS_ERR;
 		}
@@ -767,7 +772,7 @@ size_t frame_hdrs_get(frame_t *f, const struct stomp_hdr **hdrs)
 	}
 
 	if (f->hdrs_len > f->stomp_hdrs_capacity) {
-		h = realloc(f->stomp_hdrs, f->hdrs_len * sizeof(*h));
+		h = stomp_realloc(f->stomp_hdrs, f->hdrs_len * sizeof(*h));
 		if (!h) {
 			return -1;
 		}

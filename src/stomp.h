@@ -115,4 +115,8 @@ int stomp_send_heartbeat(stomp_session_t *);
 int stomp_get_broker_hb(stomp_session_t *);
 int stomp_get_client_hb(stomp_session_t *);
 
+void stomp_set_allocators(void *(*calloc_func)(size_t, size_t),
+                                                  void *(*realloc_func)(void *, size_t),
+                                                  void (*free_func)(void *));
+
 #endif /* STOMP_H */

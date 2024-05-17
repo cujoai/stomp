@@ -46,6 +46,20 @@
 #include "frame.h"
 #include "stomp.h"
 
+/* custom allocator support */
+void *(*stomp_calloc)(size_t, size_t) = calloc;
+void *(*stomp_realloc)(void *, size_t) = realloc;
+void (*stomp_free)(void *) = free;
+
+void stomp_set_allocators(void *(*calloc_func)(size_t, size_t),
+						  void *(*realloc_func)(void *, size_t),
+						  void (*free_func)(void *))
+{
+	stomp_calloc = calloc_func;
+	stomp_realloc = realloc_func;
+	stomp_free = free_func;
+}
+
 /* enough space for ULLONG_MAX as string */
 #define ULL_STR_LEN 25
 
@@ -86,20 +100,20 @@ stomp_session_new(void *session_ctx)
 {
 	stomp_session_t *s;
 
-	if ((s = calloc(1, sizeof(*s))) == NULL)
+	if ((s = stomp_calloc(1, sizeof(*s))) == NULL)
 		return (NULL);
 
 	s->ctx = session_ctx;
 	s->broker_fd = NULL;
 
 	if ((s->frame_out = frame_new()) == NULL) {
-		free(s);
+		stomp_free(s);
 		return (NULL);
 	}
 
 	if ((s->frame_in = frame_new()) == NULL) {
-		free(s->frame_out);
-		free(s);
+		stomp_free(s->frame_out);
+		stomp_free(s);
 		return (NULL);
 	}
 
@@ -111,7 +125,7 @@ stomp_session_free(stomp_session_t *s)
 {
 	frame_free(s->frame_out);
 	frame_free(s->frame_in);
-	free(s);
+	stomp_free(s);
 }
 
 void
@@ -551,14 +565,14 @@ stomp_get_client_hb(stomp_session_t *s)
 int
 stomp_send_heartbeat(stomp_session_t *s)
 {
-	unsigned char *buf = calloc(1, LWS_SEND_BUFFER_PRE_PADDING + 1 + LWS_SEND_BUFFER_POST_PADDING + 1);
+	unsigned char *buf = stomp_calloc(1, LWS_SEND_BUFFER_PRE_PADDING + 1 + LWS_SEND_BUFFER_POST_PADDING + 1);
 
 	if (buf == NULL)
 		return (-1);
 
 	buf[LWS_SEND_BUFFER_PRE_PADDING] = '\n';
 	int bytes_sent = lws_write(s->broker_fd, &buf[LWS_SEND_BUFFER_PRE_PADDING], 1, LWS_WRITE_TEXT);
-	free(buf);
+	stomp_free(buf);
 	return (bytes_sent == -1 ? -1 : 0);
 }
 
