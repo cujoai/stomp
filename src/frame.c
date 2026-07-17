@@ -774,7 +774,8 @@ size_t frame_hdrs_get(frame_t *f, const struct stomp_hdr **hdrs)
 	if (f->hdrs_len > f->stomp_hdrs_capacity) {
 		h = stomp_realloc(f->stomp_hdrs, f->hdrs_len * sizeof(*h));
 		if (!h) {
-			return -1;
+			*hdrs = NULL;
+			return 0;
 		}
 		
 		f->stomp_hdrs = h;
